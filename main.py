@@ -1,10 +1,13 @@
 import requests
 
+# DB Schema: https://miro.com/app/board/o9J_l4VnWWE=/
 # Combine data from multiple sources to create BMR database records representing issues
 
 # bmr_issue_base = dict(
 #   id=None,#(int)
 #   gcd_id=None,#(int)
+#   gb_id=None,#(int)
+#   gcd_series_id=None,#(int)
 #   title=None,#(str)
 #   subtitle=None,#(str)
 #   description=None,#(str)
@@ -28,6 +31,7 @@ def format_bmr_issue(gb_issue, gcd_issue):
     issue = dict(
       isbn = gcd_issue['isbn'],
       gcd_id = gcd_issue['id'],
+      gcd_series_id = gcd_issue['series_id'],
       gb_id = gb_issue['id'],
       title=gb_issue['volumeInfo']['title'],
       subtitle=gb_issue['volumeInfo'].get('subtitle', None),
@@ -42,7 +46,7 @@ def format_bmr_issue(gb_issue, gcd_issue):
       snippet=gb_issue.get('searchInfo', {}).get('textSnippet', None),
       cover_url=None,
       # Represented as relationships in database
-      genres=gb_issue['volumeInfo'].get(['genres']),
+      genres = gb_issue['volumeInfo'].get('categories', [])
     )
     return issue
   except KeyError as e:
@@ -51,8 +55,8 @@ def format_bmr_issue(gb_issue, gcd_issue):
 
 def get_issues():
   gcd_issues = [
-    dict(isbn='0930193466', id=123),
-    dict(isbn='1302914790', id=124)
+    dict(isbn='0930193466', id=123, series_id=567),
+    dict(isbn='1302914790', id=124, series_id=789)
   ]
   bmr_issues = []
   for issue in gcd_issues: 
