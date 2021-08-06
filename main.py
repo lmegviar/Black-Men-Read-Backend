@@ -1,4 +1,6 @@
 import requests
+import json
+import re
 
 # DB Schema: https://miro.com/app/board/o9J_l4VnWWE=/
 # Combine data from multiple sources to create BMR database records representing issues
@@ -26,6 +28,18 @@ import requests
 
 # For ISBNS, split on semi-colon and get first item (some have multiple) and remove all non-numerical characters
 
+  #  <div class="coverImage">
+  #           <a href="/upload_cover/1667004/"><img class="no_cover" src="https://files1.comics.org/static/img/nocover_medium.png" alt="No image yet"class="cover_img"></a>
+
+
+def get_gcd_cover(gcd_id):
+  print(f'getting cover from : https://www.comics.org/issue/{gcd_id}')
+  req = requests.get(f'https://www.comics.org/issue/{gcd_id}').text
+  cover_url = re.search("https://files1\.comics\.org//img/gcd/covers_by_id/.*\.jpg", req, re.M)
+  print(cover_url.group() if cover_url else None)
+  # change width to 400px
+  return cover_url
+
 def format_bmr_issue(gb_issue, gcd_issue):
   try:
     issue = dict(
@@ -48,15 +62,17 @@ def format_bmr_issue(gb_issue, gcd_issue):
       # Represented as relationships in database
       genres = gb_issue['volumeInfo'].get('categories', [])
     )
-    return issue
   except KeyError as e:
-    print(gcd_issue['isbn'])
     print(f'KeyError for ISBN {gcd_issue["isbn"]} - reason: {e}')
+    return None
+
+  issue['cover_url'] = get_gcd_cover(issue['gcd_id'])
+  return issue
 
 def get_issues():
   gcd_issues = [
-    dict(isbn='0930193466', id=123, series_id=567),
-    dict(isbn='1302914790', id=124, series_id=789)
+    dict(isbn='0930193466', id=1008760, series_id=567)
+    # dict(isbn='1302914790', id=1667004, series_id=789)
   ]
   bmr_issues = []
   for issue in gcd_issues: 
@@ -65,11 +81,10 @@ def get_issues():
       continue
     # Sometimes there are duplicate records for the same ISBN. For now, just grab the first.
     gb_issue = req.json()['items'][0]
-    print(gb_issue)
     bmr_issue = format_bmr_issue(gb_issue=gb_issue, gcd_issue=issue)
     if bmr_issue: bmr_issues.append(bmr_issue)
   return bmr_issues
 
 # unpac dict to make insert statement
 
-print(get_issues())
+get_issues()
